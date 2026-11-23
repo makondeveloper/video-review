@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>영상 검수</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<header>
+  <div class="brand">영상 검수</div>
+  <span id="guestBadge" class="badge guestonly">👥 같이 보기</span>
+  <div class="grp dirgrp hostonly">
+    <button id="pickBtn" class="primary" title="윈도우 파일 열기 창에서 검수할 영상 고르기">📂 파일 열기</button>
+    <input id="dir" list="recentDirs" spellcheck="false" title="폴더나 영상 파일 경로를 붙여 넣고 Enter (최근 폴더는 ▼)" placeholder="폴더나 영상 경로 붙여 넣기 (예: D:\편집\완성본)">
+    <datalist id="recentDirs"></datalist>
+    <button id="dirOpen" title="입력한 경로 열기 (Enter)">열기</button>
+  </div>
+  <select id="videoSel" class="hostonly" title="영상 고르기"></select>
+  <b id="guestVideo" class="guestonly"></b>
+  <div class="grow"></div>
+  <span id="saveState" class="dim"></span>
+  <button id="shareBtn" class="hostonly" title="같은 와이파이의 다른 사람에게 이 화면 보여 주기">👥 같이 보기</button>
+  <button id="doneBtn" class="primary hostonly" disabled>검수 완료</button>
+  <button id="helpBtn" title="단축키 보기 (?)">단축키</button>
+</header>
+
+<div id="main">
+  <section id="monitor">
+    <div id="screen">
+      <video id="video" preload="auto" playsinline></video>
+      <div id="empty" class="empty">위에서 영상 폴더를 열고 영상을 골라 주세요.</div>
+      <div id="flash"></div>
+      <div id="fsNote"><div id="fsNoteHead" class="dim"></div></div>
+      <div id="fsbar">
+        <span id="fsTc" class="tc">00:00:00:00</span>
+        <div id="fsTrack"><div id="fsMarks"></div><div id="fsHead"></div></div>
+        <span class="dim fshint">M 마킹 · ↑↓ 마커 이동</span>
+        <button id="fsExit" title="전체화면 끝내기 (F 또는 Esc)">전체화면 끝내기</button>
+      </div>
+    </div>
+    <div id="transport">
+      <span id="tcNow" class="tc big">00:00:00:00</span>
+      <span id="tcDur" class="tc dim">/ 00:00:00:00</span>
+      <div class="tbtns">
+        <button data-act="prevMark" title="이전 마커 (↑)">⏮</button>
+        <button data-act="back1s" title="1초 뒤로 (Shift+←)">−1초</button>
+        <button data-act="prevFrame" title="1프레임 뒤로 (←)">−1f</button>
+        <button data-act="play" id="playBtn" class="play" title="재생 / 정지 (Space)">▶</button>
+        <button data-act="nextFrame" title="1프레임 앞으로 (→)">+1f</button>
+        <button data-act="fwd1s" title="1초 앞으로 (Shift+→)">+1초</button>
+        <button data-act="nextMark" title="다음 마커 (↓)">⏭</button>
+      </div>
+      <div class="grow"></div>
+      <label class="mini">속도
+        <select id="rate">
+          <option value="0.5">0.5x</option><option value="0.75">0.75x</option>
+          <option value="1" selected>1x</option><option value="1.25">1.25x</option>
+          <option value="1.5">1.5x</option><option value="2">2x</option>
+        </select>
+      </label>
+      <label class="mini hostonly">fps
+        <select id="fps">
+          <option>23.976</option><option>24</option><option>25</option><option>29.97</option>
+          <option selected>30</option><option>50</option><option>59.94</option><option>60</option>
+        </select>
+      </label>
+      <label class="mini">🔊 <input id="vol" type="range" min="0" max="1" step="0.05" value="1"></label>
+      <button id="fsBtn" title="영상 전체화면 (F) · 영상 더블클릭">⛶ 전체화면</button>
+      <button id="appFsBtn" title="타임라인까지 통째로 전체화면 (Shift+F)">⛶ 화면 통째로</button>
+    </div>
+  </section>
+
+  <aside id="panel">
+    <div class="ph"><b>고칠 곳</b> <span id="count" class="dim"></span></div>
+    <div id="filters"></div>
+    <ul id="list"></ul>
+    <div id="editor" hidden>
+      <div class="seg" id="edType"></div>
+      <div class="times">
+        <label>시작 <input id="edStart" spellcheck="false"></label>
+        <button id="edStartNow" title="지금 재생 위치를 시작으로">지금</button>
+        <label>끝 <input id="edEnd" spellcheck="false"></label>
+        <button id="edEndNow" title="지금 재생 위치를 끝으로">지금</button>
+      </div>
+      <textarea id="note" rows="4" placeholder="무엇을 어떻게 고칠지 적어 주세요&#10;Enter 저장 · Shift+Enter 줄바꿈"></textarea>
+      <div class="erow">
+        <label class="chk"><input type="checkbox" id="edDone"> 반영됨</label>
+        <div class="grow"></div>
+        <button id="edPoint" title="구간을 한 지점으로">지점으로</button>
+        <button id="edDel" class="danger" title="삭제 (Delete)">삭제</button>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<section id="timeline">
+  <div id="tlbar">
+    <div id="types" class="seg"></div>
+    <span id="ioState" class="dim"></span>
+    <label class="chk"><input type="checkbox" id="pauseOnMark" checked> 마킹하면 멈추고 메모</label>
+    <div class="grow"></div>
+    <button id="zoomOut" title="축소 (−)">−</button>
+    <input id="zoom" type="range" min="0" max="1000" value="0" title="확대 / 축소 (Ctrl+휠)">
+    <button id="zoomIn" title="확대 (+)">＋</button>
+    <button id="zoomFit" title="전체 보기 (\)">전체</button>
+  </div>
+  <div id="tlscroll"><div id="tlspacer"></div><canvas id="tl"></canvas></div>
+</section>
+
+<div id="share" class="modal" hidden>
+  <div class="hbox sbox">
+    <div class="hh"><b>👥 같이 보기</b><button id="shareClose">닫기</button></div>
+    <div id="shareBody"></div>
+  </div>
+</div>
+
+<div id="help" class="modal" hidden>
+  <div class="hbox">
+    <div class="hh"><b>단축키</b><button id="helpClose">닫기</button></div>
+    <table>
+      <tr><td><kbd>Space</kbd> / <kbd>K</kbd></td><td>재생 / 정지</td></tr>
+      <tr><td><kbd>L</kbd> · <kbd>J</kbd></td><td>재생(누를수록 빠르게) · 5초 뒤로</td></tr>
+      <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>1프레임 이동 (Shift: 1초)</td></tr>
+      <tr><td><kbd>↑</kbd> <kbd>↓</kbd></td><td>이전 / 다음 마커로</td></tr>
+      <tr><td><kbd>M</kbd></td><td>지금 위치에 마킹 (I·O 찍었으면 그 구간으로)</td></tr>
+      <tr><td><kbd>I</kbd> <kbd>O</kbd> · <kbd>X</kbd></td><td>구간 시작 / 끝 찍기 · 지우기</td></tr>
+      <tr><td><kbd>1</kbd>~<kbd>7</kbd></td><td>그 종류로 바로 마킹 (컷편집·자막·소리·효과음·효과·화면·기타) — 아래 종류 버튼을 눌러도 같음</td></tr>
+      <tr><td><kbd>Enter</kbd></td><td>고른 마커 메모 쓰기</td></tr>
+      <tr><td><kbd>Delete</kbd></td><td>고른 마커 지우기</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>되돌리기 / 다시하기</td></tr>
+      <tr><td><kbd>+</kbd> <kbd>−</kbd> · <kbd>\</kbd></td><td>타임라인 확대 / 축소 · 전체 보기</td></tr>
+      <tr><td><kbd>F</kbd> · <kbd>Shift</kbd>+<kbd>F</kbd></td><td>영상 전체화면 · 타임라인까지 통째로 전체화면 (다시 누르면 끝)</td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>선택 풀기 · 메모 칸에서 나가기</td></tr>
+      <tr><td>타임라인 끌기</td><td>마커 줄 빈 곳을 끌면 구간 마커, 마커 끝을 끌면 길이 조절</td></tr>
+    </table>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>
