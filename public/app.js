@@ -1214,15 +1214,26 @@ function renderShareBody(err) {
     flash('링크를 복사했어요');
   };
 }
+let shareBusy = false;
 async function setShare(on) {
+  if (shareBusy) return;
+  shareBusy = true;
+  // 서버가 와이파이 주소를 여는 데 1~2초 걸린다 → 누른 버튼과 위 버튼에 진행 중이라고 바로 보여 준다
+  const busyText = on ? '⏳ 링크 만드는 중…' : '⏳ 끄는 중…';
+  for (const id of ['shareOn', 'shareSwitch', 'shareOff']) {
+    const b = $('#' + id);
+    if (b) { b.disabled = true; if ((id === 'shareOff') !== on) b.textContent = busyText; }
+  }
+  $('#shareBtn').textContent = busyText;
   try {
     S.share = await (await api('/api/share', { method: 'POST', body: JSON.stringify({ on, video: S.name }), headers: { 'Content-Type': 'application/json' } })).json();
     renderShareBody();
     flash(on ? `같이 보기: ${S.name}` : '같이 보기를 껐어요');
   } catch (e) {
     if (e.message === 'setup needed') renderShareBody('setup');
-    else flash('같이 보기를 바꾸지 못했어요: ' + e.message);
+    else { flash('같이 보기를 바꾸지 못했어요: ' + e.message); renderShareBody(); }
   }
+  shareBusy = false;
   renderShareBtn();
 }
 $('#shareBtn').onclick = async e => {
