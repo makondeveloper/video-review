@@ -149,6 +149,7 @@ function serialize() {
     start: +m.start.toFixed(3), end: +m.end.toFixed(3),
     startTC: tc(m.start), endTC: tc(m.end),
     note: m.note || '', applied: !!m.applied,
+    rule: !!m.rule,   // 팀장님 '앞으로도 이렇게' = 원칙집 후보 (구조안 11-10)
     createdAt: m.createdAt, updatedAt: m.updatedAt,
   }));
   return JSON.stringify({ ...R, updatedAt: new Date().toISOString(), markers }, null, 2);
@@ -496,7 +497,7 @@ function renderList() {
     return `<li class="row${m.id === selId ? ' sel' : ''}${m.applied ? ' applied' : ''}" data-id="${m.id}">
       <span class="bar" style="background:${t.color}"></span>
       <div><div class="tcs tc">${times}</div><div class="nt${m.note ? '' : ' none'}">${m.note ? esc(m.note) : '메모 없음'}</div></div>
-      <span class="tag" style="color:${t.color}">${t.label}</span></li>`;
+      <div class="tags"><span class="tag" style="color:${t.color}">${t.label}</span>${m.rule ? '<span class="tag rule" title="앞으로도 이렇게 (원칙 후보)">★ 앞으로도</span>' : ''}</div></li>`;
   }).join('');
   ul.querySelectorAll('.row').forEach(li => {
     li.onclick = () => select(li.dataset.id, { seek: true });
@@ -517,6 +518,7 @@ function renderEditor() {
   if (document.activeElement !== $('#edEnd')) $('#edEnd').value = tc(m.end);
   if (document.activeElement !== noteEl) noteEl.value = m.note || '';
   $('#edDone').checked = !!m.applied;
+  $('#edRule').checked = !!m.rule;
   $('#fsNoteHead').textContent = `${TYPE[m.type].label} · ${tc(m.start)}${m.kind === 'range' ? ' → ' + tc(m.end) : ''}  —  Enter 저장하고 이어서 재생`;
   $('#edPoint').disabled = m.kind === 'point';
 }
@@ -578,6 +580,7 @@ $('#edStartNow').onclick = () => {
 $('#edEndNow').onclick = () => { const m = getSel(); if (!m) return; snapshot(); m.end = video.currentTime; touch(m); commit(); };
 $('#edPoint').onclick = () => { const m = getSel(); if (!m) return; snapshot(); m.end = m.start; touch(m); commit(); };
 $('#edDel').onclick = removeSel;
+$('#edRule').onchange = () => { const m = getSel(); if (!m) return; snapshot(); m.rule = $('#edRule').checked; touch(m); commit(); flash(m.rule ? '★ 앞으로도 이렇게 — 원칙 후보로 표시했어요' : '원칙 후보 표시를 뺐어요'); };
 $('#edDone').onchange = () => { const m = getSel(); if (!m) return; snapshot(); m.applied = $('#edDone').checked; touch(m); commit(); };
 
 // ---------- 위쪽 막대 ----------
@@ -678,11 +681,21 @@ function buildSummary() {
   L.push('- 검수 뒤에 시퀀스가 바뀌었으면(컷 등) 시각이 밀렸을 수 있다 → 재편집 전에 확인하고 팀장님께 먼저 말한다.');
   L.push('');
   L.push('## 고칠 곳 (시간 순)', '');
-  L.push('| 번호 | 시각 | 종류 | 메모 | 반영 | id |', '|---|---|---|---|---|---|');
+  L.push('| 번호 | 시각 | 종류 | 메모 | 앞으로도 | 반영 | id |', '|---|---|---|---|---|---|---|');
   for (const m of list) {
-    L.push(`| ${num.get(m.id)} | ${where(m)} | ${TYPE[m.type].label} | ${cell(m.note) || '⚠ 메모 없음'} | ${m.applied ? '반영됨' : ''} | ${m.id} |`);
+    L.push(`| ${num.get(m.id)} | ${where(m)} | ${TYPE[m.type].label} | ${cell(m.note) || '⚠ 메모 없음'} | ${m.rule ? '★' : ''} | ${m.applied ? '반영됨' : ''} | ${m.id} |`);
   }
-  if (!list.length) L.push('| - | - | - | 고칠 곳 없음 | | |');
+  if (!list.length) L.push('| - | - | - | 고칠 곳 없음 | | | |');
+  L.push('');
+  // 검수 학습 (구조안 11-10): 팀장님이 '앞으로도 이렇게'로 표시한 것 = 원인 ②(원칙집에 없음) 확정 후보
+  const rules = list.filter(m => m.rule);
+  L.push('## 원칙 후보 (팀장님 "앞으로도 이렇게" 표시)');
+  if (rules.length) {
+    L.push('재편집 뒤 검수 학습 기록에 **원인 ② 새 원칙 후보**로 적는다(이미 원칙집에 있으면 ① 놓친 원칙). 원칙집 반영은 팀장님 승인 후.', '');
+    for (const m of rules) L.push(`- ${num.get(m.id)} · ${TYPE[m.type].label} · ${cell(m.note) || '⚠ 메모 없음'}`);
+  } else {
+    L.push('- 없음. 나머지 항목의 원인(① 놓친 원칙 / ② 새 원칙 / ③ 이 영상만 / ④ 세션 한계)은 재편집 세션이 나눈다.');
+  }
   L.push('');
   L.push('## 재편집 순서 (종류별)');
   L.push('길이가 바뀌지 않는 것부터 하고, **컷편집은 맨 마지막에 뒤(늦은 시각)부터** 한다. 앞을 먼저 자르면 뒤 시각이 전부 밀린다.', '');

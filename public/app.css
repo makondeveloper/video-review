@@ -114,6 +114,9 @@ label.mini select { padding: 3px 4px; }
 #list .nt { white-space: pre-wrap; word-break: break-all; }
 #list .nt.none { color: #6d7178; font-style: italic; }
 #list .tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--panel3); }
+#list .tags { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+#list .tag.rule { color: #ffd76a; background: #3a3420; white-space: nowrap; }
+.erow { flex-wrap: wrap; }
 #list .emptyrow { color: var(--dim); padding: 18px 10px; line-height: 1.7; cursor: default; }
 
 #editor { border-top: 1px solid var(--line); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
